@@ -2,10 +2,9 @@
 
 > Prova de Conceito (PoC) desenvolvida para o **Desafio AMLabs 2025**.
 
-Este projeto é uma simulação funcional de interface para o Totem SK210, demonstrando como a **Inteligência de Venda Cruzada (Cross-Sell)** pode aumentar o Ticket Médio e a experiência do consumidor sem necessidade de novos hardwares.
+Este projeto é uma simulação funcional de interface para um totem de mercado autonomo, demonstrando como a **Inteligência de Venda Cruzada (Cross-Sell)** pode aumentar o Ticket Médio e a experiência do consumidor sem necessidade de novos hardwares.
 
-🔗 **[ACESSE A DEMO ONLINE AQUI](https://SEU-USUARIO.github.io/NOME-DO-SEU-REPO/)**
-*(Substitua o link acima depois de ativar o GitHub Pages)*
+🔗 https://kiarabarrios.github.io/sistema-de-pagamento-demo/
 
 ---
 
