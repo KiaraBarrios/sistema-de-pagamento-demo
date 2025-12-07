@@ -4,8 +4,6 @@
 
 Este projeto é uma simulação funcional de interface para um totem de mercado autonomo, demonstrando como a **Inteligência de Venda Cruzada (Cross-Sell)** pode aumentar o Ticket Médio e a experiência do consumidor sem necessidade de novos hardwares.
 
-🔗 https://kiarabarrios.github.io/sistema-de-pagamento-demo/
-
 ---
 
 ## 🎯 O Problema
