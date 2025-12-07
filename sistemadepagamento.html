@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TouchPay Intelligence - Mobile & Desktop</title>
+    <style>
+        /* --- ESTILOS VISUAIS --- */
+        :root {
+            --azul-escuro: #003366;
+            --azul-principal: #004aad;
+            --azul-claro: #e6f2ff;
+            --branco: #ffffff;
+            --cinza-borda: #cbd5e1;
+            --verde-sucesso: #16a34a;
+            --verde-claro: #dcfce7;
+            --vermelho: #dc2626;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: var(--azul-claro); height: 100vh; width: 100vw;
+            overflow: hidden; display: flex; color: var(--azul-escuro);
+        }
+
+        /* TELA INICIAL */
+        #startScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, var(--azul-escuro), var(--azul-principal));
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; color: white; padding: 20px; text-align: center;
+        }
+        #btnStart {
+            margin-top: 30px; padding: 20px 60px; font-size: 24px; border: none; border-radius: 50px; cursor: pointer;
+            background: white; color: var(--azul-principal); font-weight: 800; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.2s; width: 80%; max-width: 300px;
+        }
+        #btnStart:active { transform: scale(0.95); }
+
+        /* LAYOUT PRINCIPAL */
+        #appContainer { display: none; width: 100%; height: 100%; }
+
+        /* MODO DESKTOP (PADRÃO) */
+        .left-area {
+            width: 65%; background: var(--branco); padding: 25px;
+            display: flex; flex-direction: column; border-right: 1px solid var(--cinza-borda);
+        }
+
+        .right-area {
+            width: 35%; background: #f8fafc; padding: 20px;
+            display: flex; flex-direction: column; border-left: 1px solid var(--cinza-borda);
+        }
+
+        /* HEADER */
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 15px; border-bottom: 2px solid var(--azul-claro); margin-bottom: 10px;
+        }
+        .logo { font-size: 28px; font-weight: 800; color: var(--azul-escuro); }
+        .logo span { color: #3b82f6; }
+        .status-badge { background: var(--azul-claro); color: var(--azul-principal); padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 12px;}
+
+        /* FILTROS */
+        .filter-bar { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding: 5px 0; scrollbar-width: none; }
+        .filter-bar::-webkit-scrollbar { display: none; }
+        .filter-btn {
+            padding: 8px 16px; border-radius: 20px; border: 1px solid var(--cinza-borda);
+            background: white; color: var(--azul-principal); cursor: pointer; font-weight: 600;
+            white-space: nowrap; transition: 0.2s; font-size: 14px;
+        }
+        .filter-btn.active { background: var(--azul-principal); color: white; border-color: var(--azul-principal); }
+
+        /* VITRINE */
+        .grid-produtos {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 10px; overflow-y: auto; padding-right: 5px; flex: 1; padding-bottom: 20px;
+        }
+        .card-produto {
+            background: white; border: 1px solid var(--cinza-borda); border-radius: 12px;
+            padding: 10px; text-align: center; cursor: pointer; height: 130px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s;
+        }
+        .card-produto:active { border-color: var(--azul-principal); transform: scale(0.98); background: #f8fbff; }
+        .p-emoji { font-size: 30px; margin-bottom: 5px; }
+        .p-nome { font-size: 12px; font-weight: 600; line-height: 1.2; color: #334155; }
+        .p-preco { font-size: 14px; font-weight: 800; color: var(--verde-sucesso); }
+
+        /* CARRINHO */
+        .cart-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .cart-title { color: var(--azul-escuro); font-size: 18px; font-weight: 800; margin: 0; }
+        .btn-limpar {
+            background: none; border: 1px solid var(--vermelho); color: var(--vermelho);
+            padding: 4px 10px; border-radius: 15px; cursor: pointer; font-size: 11px; font-weight: bold;
+        }
+
+        .cart-box {
+            background: white; border-radius: 12px; border: 1px solid var(--cinza-borda);
+            flex: 1; margin: 5px 0 10px 0; padding: 10px; overflow-y: auto;
+        }
+        .cart-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 0; border-bottom: 1px solid var(--azul-claro); animation: slideIn 0.3s;
+        }
+        @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .item-info div:first-child { font-weight: bold; font-size: 13px; }
+        .item-controls { display: flex; align-items: center; gap: 5px; }
+        .btn-qty {
+            width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--cinza-borda);
+            background: white; color: var(--azul-principal); font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center;
+        }
+        .item-total { font-weight: 800; color: var(--azul-principal); width: 50px; text-align: right; font-size: 13px; }
+
+        .total-container {
+            background: white; padding: 15px; border-radius: 15px; border: 2px solid var(--azul-principal); text-align: center;
+        }
+        .total-display { font-size: 28px; font-weight: 900; color: var(--azul-principal); margin: 5px 0 10px 0; }
+        .btn-checkout {
+            width: 100%; padding: 12px; background: var(--azul-principal); color: white;
+            border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;
+        }
+        .btn-checkout:active { background: var(--azul-escuro); }
+
+        /* --- MODAIS RESPONSIVOS --- */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 30, 60, 0.85); display: none;
+            justify-content: center; align-items: center; z-index: 5000;
+            backdrop-filter: blur(4px); padding: 20px;
+        }
+        .modal {
+            background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 20px;
+            text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.4); animation: popUp 0.3s;
+            max-height: 90vh; overflow-y: auto;
+        }
+        @keyframes popUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* SUGESTÕES */
+        .sugestoes-wrapper { 
+            display: flex; gap: 10px; justify-content: center; margin: 20px 0; flex-wrap: wrap; 
+        }
+        .sugestao-card {
+            background: var(--branco); border: 2px solid var(--cinza-borda);
+            border-radius: 12px; padding: 10px; flex: 1; min-width: 120px; cursor: pointer; transition: 0.2s;
+            display: flex; flex-direction: column; align-items: center; position: relative;
+        }
+        
+        .sugestao-card.selected {
+            background: var(--verde-claro); border-color: var(--verde-sucesso);
+            transform: translateY(-3px);
+        }
+        .check-badge {
+            display: none; position: absolute; top: -8px; right: -8px;
+            background: var(--verde-sucesso); color: white; border-radius: 50%;
+            width: 22px; height: 22px; justify-content: center; align-items: center; font-weight: bold; font-size: 12px;
+        }
+        .sugestao-card.selected .check-badge { display: flex; }
+        
+        .sug-icon { font-size: 35px; margin-bottom: 5px; }
+        .sug-nome { font-weight: 700; color: var(--azul-escuro); font-size: 13px; margin-bottom: 5px; }
+        .sug-preco { font-weight: 800; color: var(--verde-sucesso); font-size: 16px; }
+
+        .btn-modal { padding: 12px; border-radius: 10px; border: none; font-size: 15px; font-weight: bold; cursor: pointer; flex: 1; }
+        .btn-sim { background: var(--verde-sucesso); color: white; width: 100%; transition: 0.2s; }
+        .btn-nao { background: #e2e8f0; color: #475569; width: 100%; }
+
+        /* PAGAMENTO */
+        .payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .pay-option { 
+            background: white; border: 2px solid var(--cinza-borda); padding: 15px; border-radius: 12px;
+            font-weight: 700; color: var(--azul-escuro); cursor: pointer; font-size: 14px;
+        }
+        .pay-option:active { border-color: var(--azul-principal); background: var(--azul-claro); }
+
+        #telaSucesso { background: var(--verde-sucesso); color: white; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 6000; position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+
+        /* --- MEDIA QUERY: MODO CELULAR --- */
+        @media (max-width: 768px) {
+            #appContainer { flex-direction: column; }
+            .left-area { width: 100%; height: 60%; padding: 15px; border-right: none; border-bottom: 1px solid var(--cinza-borda); }
+            .right-area { width: 100%; height: 40%; padding: 15px; }
+            .logo { font-size: 22px; }
+            .grid-produtos { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+            .card-produto { height: 110px; padding: 8px; }
+            .p-emoji { font-size: 28px; }
+            .p-nome { font-size: 11px; }
+            .p-preco { font-size: 13px; }
+            .cart-box { margin: 5px 0; }
+            .total-container { padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+            .total-display { font-size: 20px; margin: 0; }
+            .btn-checkout { width: auto; padding: 10px 20px; font-size: 14px; }
+            .total-label { display: none; } /* Economiza espaço no mobile */
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="startScreen">
+        <div style="font-size: 80px; margin-bottom: 20px;">🛒</div>
+        <h1>TouchPay Intelligence</h1>
+        <p style="margin-top: 10px; opacity: 0.8;">Módulo de Recomendações Ativo</p>
+        <button id="btnStart" onclick="iniciarApp()">INICIAR SISTEMA</button>
+    </div>
+
+    <div id="appContainer">
+        <div class="left-area">
+            <header>
+                <div class="logo">Touch<span>Pay</span></div>
+                <div class="status-badge">● Online</div>
+            </header>
+
+            <div class="filter-bar">
+                <button class="filter-btn active" onclick="filtrar('todos')">Todos</button>
+                <button class="filter-btn" onclick="filtrar('churrasco')">Churrasco</button>
+                <button class="filter-btn" onclick="filtrar('bebidas')">Bebidas</button>
+                <button class="filter-btn" onclick="filtrar('mercearia')">Mercearia</button>
+                <button class="filter-btn" onclick="filtrar('snacks')">Snacks</button>
+            </div>
+
+            <div class="grid-produtos" id="vitrine"></div>
+        </div>
+
+        <div class="right-area">
+            <div class="cart-header-row">
+                <h2 class="cart-title">🛒 Carrinho</h2>
+                <button class="btn-limpar" onclick="limparCarrinho()">🗑️ Limpar</button>
+            </div>
+            
+            <div class="cart-box" id="listaCarrinho">
+                <div style="text-align:center; padding: 30px; color:#94a3b8; font-size: 14px;">
+                    Seu carrinho está vazio
+                </div>
+            </div>
+            
+            <div class="total-container">
+                <div class="total-label">Total a Pagar</div>
+                <div class="total-display" id="displayTotal">R$ 0,00</div>
+                <button class="btn-checkout" onclick="abrirPagamento()">FINALIZAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="modalSugestao">
+        <div class="modal">
+            <h2 id="tituloModal" style="color:var(--azul-principal); font-size: 20px;">💡 Dica Inteligente!</h2>
+            <p style="margin:10px 0 15px 0; color:#64748b; font-size: 16px;" id="textoGatilho">...</p>
+            <div class="sugestoes-wrapper" id="areaSugestoes"></div>
+            <div style="display:flex; gap: 10px; margin-top: 20px;">
+                <button class="btn-modal btn-nao" onclick="fecharModal('modalSugestao')">Dispensar</button>
+                <button class="btn-modal btn-sim" id="btnAdicionarSugestao" onclick="confirmarSelecao()">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="modalPagamento">
+        <div class="modal" style="max-width: 400px;">
+            <h2 style="color:var(--azul-escuro); margin-bottom:20px;">💳 Pagamento</h2>
+            <div class="payment-grid">
+                <button class="pay-option" onclick="pagar()">Crédito</button>
+                <button class="pay-option" onclick="pagar()">Débito</button>
+                <button class="pay-option" onclick="pagar()">Pix</button>
+                <button class="pay-option" onclick="pagar()">Voucher</button>
+            </div>
+            <button class="btn-modal btn-nao" onclick="fecharModal('modalPagamento')">Voltar</button>
+        </div>
+    </div>
+
+    <div id="telaSucesso">
+        <div style="font-size:80px; margin-bottom: 20px;">✅</div>
+        <h1>Compra Aprovada!</h1>
+    </div>
+
+    <script>
+        // --- DADOS ---
+        const produtos = {
+            // Churrasco
+            'cerveja': { nome: 'Heineken Lata', preco: 5.49, icon: '🍺', cat: 'bebidas', crossIds: ['amendoim', 'salame'], msg: '🍻 Vai bem com petiscos:' },
+            'carvao': { nome: 'Carvão 3kg', preco: 25.90, icon: '🔥', cat: 'churrasco', crossIds: ['sal'], msg: '🔥 Não esqueça do principal:' },
+            'sal': { nome: 'Sal Grosso 1kg', preco: 4.50, icon: '🧂', cat: 'churrasco' }, 
+            'salame': { nome: 'Salame Fatiado', preco: 12.90, icon: '🥓', cat: 'churrasco' },
+
+            // Snacks e Refris
+            'doritos': { nome: 'Doritos 140g', preco: 11.90, icon: '🧀', cat: 'snacks', crossIds: ['coca_lata'], msg: '🥤 Sede? Leve geladinha:' },
+            'amendoim': { nome: 'Amendoim Jap.', preco: 8.90, icon: '🥜', cat: 'snacks', crossIds: ['coca_lata'], msg: '🥤 Combina com:' },
+            'coca_lata': { nome: 'Coca-Cola 350ml', preco: 3.50, icon: '🥤', cat: 'bebidas' },
+            'coca': { nome: 'Coca-Cola 2L', preco: 11.90, icon: '🥤', cat: 'bebidas' }, 
+            'suco': { nome: 'Suco Laranja', preco: 8.90, icon: '🍊', cat: 'bebidas' }, 
+
+            // Mercearia (Combo)
+            'macarrao': { nome: 'Espaguete 500g', preco: 4.90, icon: '🍝', cat: 'mercearia', crossIds: ['molho', 'queijo'], msg: '🍝 As pessoas costumam levar o combo:', preSelect: true },
+            'molho': { nome: 'Molho Tomate', preco: 3.20, icon: '🥫', cat: 'mercearia' },
+            'queijo': { nome: 'Queijo Ralado', preco: 5.50, icon: '🧀', cat: 'mercearia' },
+            'pao': { nome: 'Pão de Forma', preco: 9.90, icon: '🍞', cat: 'mercearia', crossIds: ['manteiga'] },
+            'manteiga': { nome: 'Manteiga 200g', preco: 12.90, icon: '🧈', cat: 'mercearia' },
+            'detergente': { nome: 'Detergente', preco: 2.50, icon: '🧴', cat: 'limpeza', crossIds: ['esponja'] },
+            'esponja': { nome: 'Esponja', preco: 1.50, icon: '🧽', cat: 'limpeza' }
+        };
+
+        let carrinho = [];
+        let selecionadosNoModal = [];
+
+        function iniciarApp() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'flex';
+            filtrar('todos');
+        }
+
+        function filtrar(categoria) {
+            const vitrine = document.getElementById('vitrine');
+            vitrine.innerHTML = '';
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if(btn.innerText.toLowerCase().includes(categoria)) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            for (let id in produtos) {
+                const p = produtos[id];
+                if (categoria === 'todos' || p.cat === categoria) {
+                    vitrine.innerHTML += `
+                        <div class="card-produto" onclick="bipar('${id}')">
+                            <div class="p-emoji">${p.icon}</div>
+                            <div class="p-nome">${p.nome}</div>
+                            <div class="p-preco">R$ ${p.preco.toFixed(2)}</div>
+                        </div>`;
+                }
+            }
+        }
+
+        function bipar(id) {
+            const produto = produtos[id];
+            addCarrinho(produto, id);
+            if (produto.crossIds) {
+                const sugestoesValidas = produto.crossIds.filter(crossId => !carrinho.find(c => c.id === crossId));
+                if (sugestoesValidas.length > 0) setTimeout(() => prepararModal(produto, sugestoesValidas), 500);
+            }
+        }
+
+        function prepararModal(gatilho, idsSugestao) {
+            const modal = document.getElementById('modalSugestao');
+            const area = document.getElementById('areaSugestoes');
+            const texto = document.getElementById('textoGatilho');
+            
+            texto.innerHTML = gatilho.msg ? `<span style="color:var(--azul-principal); font-weight:bold;">${gatilho.msg}</span>` : `Quem leva <b>${gatilho.nome}</b> costuma levar:`;
+            area.innerHTML = '';
+            
+            selecionadosNoModal = gatilho.preSelect ? [...idsSugestao] : [];
+
+            idsSugestao.forEach(id => {
+                const item = produtos[id];
+                const div = document.createElement('div');
+                const isSelected = selecionadosNoModal.includes(id) ? 'selected' : '';
+                
+                div.className = `sugestao-card ${isSelected}`;
+                div.id = `card-${id}`;
+                div.onclick = () => toggleSelecao(id);
+                div.innerHTML = `
+                    <div class="check-badge">✓</div>
+                    <div class="sug-icon">${item.icon}</div>
+                    <div class="sug-nome">${item.nome}</div>
+                    <div class="sug-preco">R$ ${item.preco.toFixed(2)}</div>
+                `;
+                area.appendChild(div);
+            });
+            atualizarBotaoAdicionar();
+            modal.style.display = 'flex';
+        }
+
+        function toggleSelecao(id) {
+            const index = selecionadosNoModal.indexOf(id);
+            const card = document.getElementById(`card-${id}`);
+            if (index > -1) {
+                selecionadosNoModal.splice(index, 1);
+                card.classList.remove('selected');
+            } else {
+                selecionadosNoModal.push(id);
+                card.classList.add('selected');
+            }
+            atualizarBotaoAdicionar();
+        }
+
+        function atualizarBotaoAdicionar() {
+            const btn = document.getElementById('btnAdicionarSugestao');
+            const qtd = selecionadosNoModal.length;
+            if (qtd === 0) {
+                btn.innerText = "Selecione...";
+                btn.style.opacity = "0.5";
+                btn.disabled = true;
+            } else {
+                btn.innerText = `Adicionar (${qtd})`;
+                btn.style.opacity = "1";
+                btn.disabled = false;
+            }
+        }
+
+        function confirmarSelecao() {
+            selecionadosNoModal.forEach(id => addCarrinho(produtos[id], id));
+            fecharModal('modalSugestao');
+        }
+
+        function addCarrinho(produto, id) {
+            const item = carrinho.find(i => i.id === id);
+            if (item) item.qtd++;
+            else carrinho.push({ ...produto, id: id, qtd: 1 });
+            renderCarrinho();
+        }
+
+        function renderCarrinho() {
+            const divLista = document.getElementById('listaCarrinho');
+            const divTotal = document.getElementById('displayTotal');
+            divLista.innerHTML = '';
+            
+            if (carrinho.length === 0) {
+                divLista.innerHTML = '<div style="text-align:center; padding: 30px; color:#94a3b8; font-size: 14px;">Seu carrinho está vazio</div>';
+                divTotal.innerText = 'R$ 0,00';
+                return;
+            }
+
+            let total = 0;
+            [...carrinho].reverse().forEach(item => {
+                const sub = item.preco * item.qtd;
+                total += sub;
+                divLista.innerHTML += `
+                    <div class="cart-item">
+                        <div class="item-info">
+                            <div>${item.nome}</div>
+                            <div>Unit: R$ ${item.preco.toFixed(2)}</div>
+                        </div>
+                        <div class="item-controls">
+                            <button class="btn-qty" onclick="mudarQtd('${item.id}', -1)">-</button>
+                            <span>${item.qtd}</span>
+                            <button class="btn-qty" onclick="mudarQtd('${item.id}', 1)">+</button>
+                        </div>
+                        <div class="item-total">R$ ${sub.toFixed(2)}</div>
+                    </div>`;
+            });
+            divTotal.innerText = 'R$ ' + total.toFixed(2);
+        }
+
+        function mudarQtd(id, delta) {
+            const item = carrinho.find(i => i.id === id);
+            if (item) {
+                item.qtd += delta;
+                if (item.qtd <= 0) carrinho = carrinho.filter(i => i.id !== id);
+                renderCarrinho();
+            }
+        }
+
+        function limparCarrinho() {
+            if(carrinho.length > 0 && confirm("Deseja limpar o carrinho?")) {
+                carrinho = [];
+                renderCarrinho();
+            }
+        }
+
+        function abrirPagamento() {
+            if (carrinho.length === 0) return alert("Carrinho vazio!");
+            document.getElementById('modalPagamento').style.display = 'flex';
+        }
+
+        function pagar() {
+            fecharModal('modalPagamento');
+            document.getElementById('telaSucesso').style.display = 'flex';
+            setTimeout(() => {
+                carrinho = [];
+                renderCarrinho();
+                document.getElementById('telaSucesso').style.display = 'none';
+            }, 2500);
+        }
+
+        function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
+    </script>
+</body>
+</html>
