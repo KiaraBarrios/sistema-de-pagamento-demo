@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TouchPay Intelligence</title>
+    <style>
+        /* --- RESET E CORES --- */
+        :root { --azul-escuro: #003366; --azul-principal: #004aad; --azul-claro: #e6f2ff; --branco: #ffffff; --cinza: #cbd5e1; --verde: #16a34a; --verde-claro: #dcfce7; --vermelho: #dc2626; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { background-color: var(--azul-claro); height: 100vh; width: 100vw; overflow: hidden; display: flex; color: var(--azul-escuro); }
+
+        /* --- TELA INICIAL --- */
+        #startScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, var(--azul-escuro), var(--azul-principal)); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; color: white; padding: 20px; text-align: center; transition: opacity 0.5s; }
+        #btnStart { margin-top: 30px; padding: 15px 40px; font-size: 20px; border: none; border-radius: 50px; cursor: pointer; background: white; color: var(--azul-principal); font-weight: 800; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: transform 0.2s; }
+        #btnStart:active { transform: scale(0.95); }
+
+        /* --- LAYOUT PRINCIPAL --- */
+        #appContainer { display: none; width: 100%; height: 100%; }
+        
+        /* MODO DESKTOP */
+        .left-area { width: 65%; background: var(--branco); padding: 20px; display: flex; flex-direction: column; border-right: 1px solid var(--cinza); }
+        .right-area { width: 35%; background: #f8fafc; padding: 20px; display: flex; flex-direction: column; }
+
+        /* HEADER */
+        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 2px solid var(--azul-claro); margin-bottom: 10px; }
+        .logo { font-size: 24px; font-weight: 800; color: var(--azul-escuro); }
+        .logo span { color: #3b82f6; }
+        .status { background: var(--azul-claro); color: var(--azul-principal); padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 12px; }
+
+        /* FILTROS */
+        .filter-bar { display: flex; gap: 8px; margin-bottom: 10px; overflow-x: auto; padding: 5px 0; }
+        .filter-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--cinza); background: white; color: var(--azul-principal); font-weight: 600; white-space: nowrap; cursor: pointer; }
+        .filter-btn.active { background: var(--azul-principal); color: white; border-color: var(--azul-principal); }
+
+        /* GRID PRODUTOS */
+        .grid-produtos { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; overflow-y: auto; padding-bottom: 20px; flex: 1; }
+        .card-produto { background: white; border: 1px solid var(--cinza); border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; height: 140px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .card-produto:active { transform: scale(0.98); border-color: var(--azul-principal); background: #f0f9ff; }
+        .p-emoji { font-size: 35px; }
+        .p-name { font-size: 12px; font-weight: 600; color: #334155; line-height: 1.2; margin-top: 5px; }
+        .p-price { font-size: 15px; font-weight: 800; color: var(--verde); margin-top: 5px; }
+
+        /* CARRINHO */
+        .cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .btn-limpar { background: none; border: 1px solid var(--vermelho); color: var(--vermelho); padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .cart-box { background: white; border-radius: 10px; border: 1px solid var(--cinza); flex: 1; margin-bottom: 10px; padding: 10px; overflow-y: auto; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--azul-claro); animation: slideIn 0.3s; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+        .item-info { font-size: 13px; font-weight: bold; }
+        .btn-qty { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--cinza); background: white; color: var(--azul-principal); font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .item-total { font-weight: 800; color: var(--azul-principal); font-size: 13px; margin-left: 5px; min-width: 50px; text-align: right; }
+        
+        .total-box { background: white; padding: 15px; border-radius: 12px; border: 2px solid var(--azul-principal); text-align: center; }
+        .total-val { font-size: 28px; font-weight: 900; color: var(--azul-principal); margin: 5px 0; }
+        .btn-checkout { width: 100%; padding: 12px; background: var(--azul-principal); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-checkout:active { background: var(--azul-escuro); }
+
+        /* MEDIA QUERY CELULAR */
+        @media (max-width: 768px) {
+            #appContainer { flex-direction: column; }
+            .left-area { width: 100%; height: 60%; padding: 15px; border-right: none; border-bottom: 1px solid var(--cinza); }
+            .right-area { width: 100%; height: 40%; padding: 15px; }
+            .grid-produtos { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+            .total-val { font-size: 24px; }
+        }
+
+        /* MODAIS */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 5000; padding: 20px; backdrop-filter: blur(2px); }
+        .modal { background: white; width: 100%; max-width: 450px; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: popUp 0.3s; max-height: 90vh; overflow-y: auto;}
+        @keyframes popUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .sugestoes-wrapper { display: flex; gap: 10px; justify-content: center; margin: 15px 0; flex-wrap: wrap; }
+        .sug-card { background: var(--branco); border: 2px solid var(--cinza); border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; cursor: pointer; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .sug-card.selected { background: var(--verde-claro); border-color: var(--verde); }
+        .check-badge { position: absolute; top: -5px; right: -5px; background: var(--verde); color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: none; justify-content: center; align-items: center; }
+        .sug-card.selected .check-badge { display: flex; }
+
+        .btn-modal { padding: 12px; border-radius: 8px; border: none; font-size: 14px; font-weight: bold; cursor: pointer; flex: 1; }
+        .btn-sim { background: var(--verde); color: white; margin-left: 5px; }
+        .btn-nao { background: #e2e8f0; color: #475569; margin-right: 5px; }
+
+        #telaSucesso { background: var(--verde); color: white; position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 6000; }
+        
+        /* PAGAMENTO */
+        .payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .pay-option { background: white; border: 2px solid var(--cinza); padding: 15px; border-radius: 12px; font-weight: 700; color: var(--azul-escuro); cursor: pointer; font-size: 14px; }
+        .pay-option:active { border-color: var(--azul-principal); background: var(--azul-claro); }
+
+    </style>
+</head>
+<body>
+
+    <div id="startScreen">
+        <div style="font-size: 60px; margin-bottom: 10px;">🛒</div>
+        <h1>TouchPay Intelligence</h1>
+        <p style="opacity:0.8; margin-bottom: 20px;">Toque para iniciar</p>
+        <button id="btnStart">INICIAR SISTEMA</button>
+    </div>
+
+    <div id="appContainer">
+        <div class="left-area">
+            <header>
+                <div class="logo">Touch<span>Pay</span></div>
+                <div class="status">● Online</div>
+            </header>
+            <div class="filter-bar">
+                <button class="filter-btn active" data-cat="todos">Todos</button>
+                <button class="filter-btn" data-cat="churrasco">Churrasco</button>
+                <button class="filter-btn" data-cat="bebidas">Bebidas</button>
+                <button class="filter-btn" data-cat="mercearia">Mercearia</button>
+                <button class="filter-btn" data-cat="snacks">Snacks</button>
+            </div>
+            <div class="grid-produtos" id="vitrine"></div>
+        </div>
+
+        <div class="right-area">
+            <div class="cart-header">
+                <h3 style="color:var(--azul-escuro)">🛒 Carrinho</h3>
+                <button class="btn-limpar" id="btnLimpar">Limpar</button>
+            </div>
+            <div class="cart-box" id="carrinhoLista">
+                <div style="text-align:center; padding: 30px; color:#94a3b8; font-size:14px;">Carrinho Vazio</div>
+            </div>
+            <div class="total-box">
+                <div style="font-size:12px; text-transform:uppercase;">Total</div>
+                <div class="total-val" id="totalDisplay">R$ 0,00</div>
+                <button class="btn-checkout" id="btnFinalizar">FINALIZAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="modalSugestao">
+        <div class="modal">
+            <h3 style="color:var(--azul-principal)">💡 Dica Inteligente!</h3>
+            <p id="textoGatilho" style="color:#64748b; margin: 10px 0;">...</p>
+            <div class="sugestoes-wrapper" id="areaSugestoes"></div>
+            <div style="display:flex;">
+                <button class="btn-modal btn-nao" id="btnFecharSugestao">Dispensar</button>
+                <button class="btn-modal btn-sim" id="btnAddSug">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="modalPagamento">
+        <div class="modal" style="max-width: 400px;">
+            <h3 style="color:var(--azul-escuro); margin-bottom:15px;">💳 Pagamento</h3>
+            <div class="payment-grid">
+                <button class="pay-option" onclick="finalizarPagamento()">Crédito</button>
+                <button class="pay-option" onclick="finalizarPagamento()">Débito</button>
+                <button class="pay-option" onclick="finalizarPagamento()">Pix</button>
+                <button class="pay-option" onclick="finalizarPagamento()">Voucher</button>
+            </div>
+            <button class="btn-modal btn-nao" onclick="fechar('modalPagamento')" style="width:100%">Voltar</button>
+        </div>
+    </div>
+
+    <div id="telaSucesso">
+        <div style="font-size:80px;">✅</div>
+        <h2>Aprovado!</h2>
+    </div>
+
+    <script>
+        // --- DADOS DO SISTEMA ---
+        const db = {
+            'cerveja': { nome: 'Heineken Lata', preco: 5.49, ico: '🍺', cat: 'bebidas', ids: ['amendoim', 'salame'], msg: '🍻 Vai bem com:' },
+            'carvao': { nome: 'Carvão 3kg', preco: 25.90, ico: '🔥', cat: 'churrasco', ids: ['sal'], msg: '🔥 Não esqueça:' },
+            'sal': { nome: 'Sal Grosso 1kg', preco: 4.50, ico: '🧂', cat: 'churrasco' },
+            'salame': { nome: 'Salame Fatiado', preco: 12.90, ico: '🥓', cat: 'churrasco' },
+            'doritos': { nome: 'Doritos 140g', preco: 11.90, ico: '🧀', cat: 'snacks', ids: ['coca_lata'], msg: '🥤 Sede? Leve:' },
+            'amendoim': { nome: 'Amendoim Jap.', preco: 8.90, ico: '🥜', cat: 'snacks', ids: ['coca_lata'], msg: '🥤 Combina com:' },
+            'coca_lata': { nome: 'Coca-Cola 350ml', preco: 3.50, ico: '🥤', cat: 'bebidas' },
+            'coca': { nome: 'Coca-Cola 2L', preco: 11.90, ico: '🥤', cat: 'bebidas' },
+            'suco': { nome: 'Suco Laranja', preco: 8.90, ico: '🍊', cat: 'bebidas' },
+            'macarrao': { nome: 'Espaguete 500g', preco: 4.90, ico: '🍝', cat: 'mercearia', ids: ['molho', 'queijo'], msg: '🍝 Combo sugerido:', pre: true },
+            'molho': { nome: 'Molho Tomate', preco: 3.20, ico: '🥫', cat: 'mercearia' },
+            'queijo': { nome: 'Queijo Ralado', preco: 5.50, ico: '🧀', cat: 'mercearia' },
+            'pao': { nome: 'Pão de Forma', preco: 9.90, ico: '🍞', cat: 'mercearia', ids: ['manteiga'] },
+            'manteiga': { nome: 'Manteiga 200g', preco: 12.90, ico: '🧈', cat: 'mercearia' },
+            'detergente': { nome: 'Detergente', preco: 2.50, ico: '🧴', cat: 'limpeza', ids: ['esponja'] },
+            'esponja': { nome: 'Esponja', preco: 1.50, ico: '🧽', cat: 'limpeza' }
+        };
+
+        let cart = [];
+        let selModal = [];
+
+        // --- INICIALIZAÇÃO SEGURA ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Eventos de clique seguros
+            document.getElementById('btnStart').addEventListener('click', iniciarSistema);
+            document.getElementById('btnLimpar').addEventListener('click', limpar);
+            document.getElementById('btnFinalizar').addEventListener('click', abrirPagamento);
+            document.getElementById('btnAddSug').addEventListener('click', confirmarSugestao);
+            document.getElementById('btnFecharSugestao').addEventListener('click', () => fechar('modalSugestao'));
+            
+            // Filtros
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    renderVitrine(e.target.dataset.cat);
+                });
+            });
+        });
+
+        function iniciarSistema() {
+            document.getElementById('startScreen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('startScreen').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'flex';
+                renderVitrine('todos');
+            }, 500);
+        }
+
+        function renderVitrine(filtro) {
+            const area = document.getElementById('vitrine');
+            area.innerHTML = '';
+            for(let id in db) {
+                let p = db[id];
+                if(filtro === 'todos' || p.cat === filtro) {
+                    let div = document.createElement('div');
+                    div.className = 'card-produto';
+                    div.innerHTML = `<div class="p-emoji">${p.ico}</div><div class="p-name">${p.nome}</div><div class="p-price">R$ ${p.preco.toFixed(2)}</div>`;
+                    div.onclick = () => add(id);
+                    area.appendChild(div);
+                }
+            }
+        }
+
+        function add(id) {
+            let item = cart.find(i => i.id === id);
+            if(item) item.q++;
+            else cart.push({ id: id, q: 1, ...db[id] });
+            renderCart();
+            checkCross(id);
+        }
+
+        function checkCross(id) {
+            let p = db[id];
+            if(p.ids) {
+                let validos = p.ids.filter(x => !cart.find(c => c.id === x));
+                if(validos.length > 0) setTimeout(() => openModal(p, validos), 400);
+            }
+        }
+
+        function renderCart() {
+            const list = document.getElementById('carrinhoLista');
+            const disp = document.getElementById('totalDisplay');
+            list.innerHTML = '';
+            let total = 0;
+            if(cart.length === 0) list.innerHTML = '<div style="text-align:center; padding:30px; color:#94a3b8; font-size:14px;">Carrinho Vazio</div>';
+            
+            [...cart].reverse().forEach(i => {
+                let sub = i.preco * i.q;
+                total += sub;
+                let row = document.createElement('div');
+                row.className = 'cart-item';
+                row.innerHTML = `
+                <div class="item-info"><div>${i.nome}</div><div style="font-weight:normal; color:#64748b;">R$ ${i.preco.toFixed(2)}</div></div>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <button class="btn-qty btn-menos">-</button>
+                    <span style="font-size:14px; font-weight:bold; width:20px; text-align:center;">${i.q}</span>
+                    <button class="btn-qty btn-mais">+</button>
+                </div>
+                <div class="item-total">R$ ${sub.toFixed(2)}</div>`;
+                
+                // Eventos manuais para evitar erros inline
+                row.querySelector('.btn-menos').onclick = () => mudar(i.id, -1);
+                row.querySelector('.btn-mais').onclick = () => mudar(i.id, 1);
+                list.appendChild(row);
+            });
+            disp.innerText = 'R$ ' + total.toFixed(2);
+        }
+
+        function mudar(id, d) {
+            let i = cart.find(x => x.id === id);
+            if(i) {
+                i.q += d;
+                if(i.q <= 0) cart = cart.filter(x => x.id !== id);
+                renderCart();
+            }
+        }
+
+        function limpar() {
+            if(cart.length > 0 && confirm('Esvaziar carrinho?')) {
+                cart = [];
+                renderCart();
+            }
+        }
+
+        // --- MODAL LÓGICA ---
+        function openModal(gatilho, ids) {
+            document.getElementById('textoGatilho').innerHTML = gatilho.msg ? gatilho.msg : `Quem leva <b>${gatilho.nome}</b> também leva:`;
+            const area = document.getElementById('areaSugestoes');
+            area.innerHTML = '';
+            selModal = gatilho.pre ? [...ids] : []; 
+
+            ids.forEach(id => {
+                let p = db[id];
+                let div = document.createElement('div');
+                let isSel = selModal.includes(id) ? 'selected' : '';
+                div.className = `sug-card ${isSel}`;
+                div.onclick = () => toggleSel(id, div);
+                div.innerHTML = `<div class="check-badge">✓</div><div style="font-size:30px">${p.ico}</div><div style="font-size:12px; font-weight:bold; margin-top:5px; text-align:center; line-height:1.2;">${p.nome}</div><div style="font-size:14px; font-weight:800; color:var(--verde); margin-top:5px;">R$ ${p.preco.toFixed(2)}</div>`;
+                area.appendChild(div);
+            });
+            updBtn();
+            document.getElementById('modalSugestao').style.display = 'flex';
+        }
+
+        function toggleSel(id, el) {
+            let idx = selModal.indexOf(id);
+            if(idx > -1) { selModal.splice(idx, 1); el.classList.remove('selected'); }
+            else { selModal.push(id); el.classList.add('selected'); }
+            updBtn();
+        }
+
+        function updBtn() {
+            const btn = document.getElementById('btnAddSug');
+            btn.innerText = selModal.length > 0 ? `Adicionar (${selModal.length})` : 'Selecione...';
+            btn.style.opacity = selModal.length > 0 ? '1' : '0.5';
+            btn.disabled = selModal.length === 0;
+        }
+
+        function confirmarSugestao() {
+            if(selModal.length === 0) return;
+            selModal.forEach(id => add(id));
+            fechar('modalSugestao');
+        }
+
+        // --- PAGAMENTO ---
+        function abrirPagamento() {
+            if(cart.length === 0) return alert('Carrinho vazio!');
+            document.getElementById('modalPagamento').style.display = 'flex';
+        }
+
+        function finalizarPagamento() {
+            fechar('modalPagamento');
+            document.getElementById('telaSucesso').style.display = 'flex';
+            setTimeout(() => {
+                cart = [];
+                renderCart();
+                document.getElementById('telaSucesso').style.display = 'none';
+            }, 2500);
+        }
+
+        function fechar(id) { document.getElementById(id).style.display = 'none'; }
+    </script>
+</body>
+</html>
